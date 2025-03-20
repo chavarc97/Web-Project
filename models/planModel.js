@@ -32,12 +32,16 @@ const trainingPlanSchema = new mongoose.Schema({
                 {
                     type: String,
                     trim: true,
-                    maxlength: [250, 'Comment cannot exceed 200 characters'],
+                    maxLength: [250, 'Comment cannot exceed 250 characters'],
                 }
             ],
         },
     ],
     totalDistance: {
+        type: Number,
+        default: 0,
+    },
+    completedDistance: {
         type: Number,
         default: 0,
     },

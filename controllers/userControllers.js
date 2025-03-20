@@ -1,7 +1,6 @@
 const express = require("express");
 const User = require("../models/userModel");
 
-const createUser = (req, res) => {};
 
 const getUsers = (req, res) => {};
 
