@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-const Workout = require('./workoutModel');
+import mongoose from 'mongoose';
 
 
 const trainingPlanSchema = new mongoose.Schema({

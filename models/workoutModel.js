@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const splitSchema = new mongoose.Schema({
   distance: {
@@ -32,7 +32,7 @@ const workoutSchema = new mongoose.Schema({
     required: [true, "Workout name is required"],
     trim: true,
     minlength: [2, "Workout name must be at least 2 characters"],
-    maxlength: [50, "Workout name cannot exceed 50 characters"],
+    maxlength: [25, "Workout name cannot exceed 50 characters"],
   },
   warmUp: {
     type: String,
@@ -88,3 +88,5 @@ const workoutSchema = new mongoose.Schema({
 });
 
 const Workout = mongoose.model("Workout", workoutSchema);
+
+export default Workout;

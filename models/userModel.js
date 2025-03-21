@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
@@ -154,8 +154,20 @@ const userSchema = new mongoose.Schema(
     recentRaces: [
       {
         name: String,
-        time: String,
-        date: Date,
+        location: String,
+        distance: {
+          type: Number,
+          enum: [5, 10, 21.0975, 42.195],
+        },
+        time: {
+          type: String,
+          match: [
+            /^(?:2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]$/,
+            "Please provide time in HH:MM:SS format",
+          ],
+        },
+        timeInSeconds: Number,
+        date: { type: Date, default: Date.now }
       },
     ],
     trainingPlans: [
@@ -170,74 +182,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save middleware to hash password
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
 
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
 
-// Pre-save middleware to calculate timeInSeconds for personal bests
-userSchema.pre("save", function (next) {
-  const races = ["fiveK", "tenK", "halfMarathon", "marathon"];
-
-  races.forEach((race) => {
-    if (this.personalBests[race].time) {
-      const [hours, minutes, seconds] = this.personalBests[race].time
-        .split(":")
-        .map(Number);
-      this.personalBests[race].timeInSeconds =
-        hours * 3600 + minutes * 60 + seconds;
-    }
-  });
-
-  next();
-});
-
-// Method to compare passwords
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
-
-// Method to get user's fastest race
-userSchema.methods.getFastestRace = function () {
-  const races = ["fiveK", "tenK", "halfMarathon", "marathon"];
-  let fastestRace = null;
-  let bestPace = Infinity;
-
-  races.forEach((race) => {
-    if (this.personalBests[race].timeInSeconds) {
-      let distanceInKm;
-      switch (race) {
-        case "fiveK":
-          distanceInKm = 5;
-          break;
-        case "tenK":
-          distanceInKm = 10;
-          break;
-        case "halfMarathon":
-          distanceInKm = 21.0975;
-          break;
-        case "marathon":
-          distanceInKm = 42.195;
-          break;
-      }
-
-      const pacePerKm = this.personalBests[race].timeInSeconds / distanceInKm;
-      if (pacePerKm < bestPace) {
-        bestPace = pacePerKm;
-        fastestRace = race;
-      }
-    }
-  });
-
-  return fastestRace;
-};
-
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+export default User;
