@@ -12,32 +12,17 @@ export const test = asyncHandler(async (req, res, next) => {
 
 // signUp controller
 export const signUp = asyncHandler(async (req, res, next) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) {
-    res.status(400);
-    throw new Error("Please provide all fields");
-  }
-  // check if user already exists
-  const userExists = await User.find({ email });
-  if (!userExists) {
-    return next(errorHandler(400, "User already exists"));
-  }
-  const salt = await bcryptjs.genSalt(10);
-  const hashedPassword = await bcryptjs.hash(password, salt);
-
-  const newUser = new User({
-    name,
-    email,
-    password: hashedPassword,
-  });
+  const { username, email, password } = req.body;
+  const hashedPassword = bcryptjs.hashSync(password, 10);
+  const newUser = new User({ username, email, password: hashedPassword });
   try {
     await newUser.save();
-    res.status(201).json({
-      message: "User created successfully",
+    res.status(201).json({ 
+      message: "User created successfully" ,
       user: {
-        id: newUser._id,
-        name: newUser.name,
+        username: newUser.username,
         email: newUser.email,
+        avatar: newUser.avatar,
       },
     });
   } catch (error) {
@@ -48,17 +33,16 @@ export const signUp = asyncHandler(async (req, res, next) => {
 // signIn controller
 export const signIn = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400);
-    throw new Error("Please provide all fields");
-  }
-
   try {
-    const validUser = await User.find({ email });
+    // Explicitly request the password field
+    const validUser = await User.findOne({ email }).select('+password');
+
     if (!validUser) {
       return next(errorHandler(404, "User not found"));
     }
 
+    console.log('Password from database:', validUser.password);
+    
     const isPasswordValid = bcryptjs.compareSync(password, validUser.password);
     if (!isPasswordValid) {
       return next(errorHandler(401, "Wrong credentials!"));
@@ -80,7 +64,6 @@ export const signIn = asyncHandler(async (req, res, next) => {
       })
       .status(200)
       .json(rest);
-
   } catch (error) {
     next(error);
   }
@@ -131,14 +114,13 @@ export const google = asyncHandler(async (req, res, next) => {
 
 // signOut controller
 export const signOut = asyncHandler(async (req, res, next) => {
-
-    try {
-      // 1. clear the access_token cookie
-      res.clearCookie("access_token");
-      // 2. send a success message
-      res.status(200).json("User signed out successfully");
-    } catch (error) {
-      // 3. if an error occurs, pass it to the error handler
-      next(error);
-    }
-  });
+  try {
+    // 1. clear the access_token cookie
+    res.clearCookie("access_token");
+    // 2. send a success message
+    res.status(200).json("User signed out successfully");
+  } catch (error) {
+    // 3. if an error occurs, pass it to the error handler
+    next(error);
+  }
+});

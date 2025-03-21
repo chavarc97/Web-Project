@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import colors from "colors";
-import userRouter from "./routes/authRoutes.js"
+import authRouter from "./routes/authRoutes.js"
 import connectDB from "./config/connection.js";
 
 const PORT = process.env.PORT || 3000;
@@ -20,7 +20,7 @@ app.listen(PORT,() => {
 
 
 // routes
-app.use("/api/v1/users", userRouter);
+app.use("/api/v1/auth", authRouter);
 
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500
