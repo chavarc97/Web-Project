@@ -179,8 +179,7 @@ const secondsToPace = (seconds) => {
  * const myPredictions = getPredictedRaceTimes(myVdot);
  */
 
-module.exports = {
-  vdotTable,
+export {
   calculateVdot,
   getTrainingPaces,
   getPredictedRaceTimes,

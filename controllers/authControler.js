@@ -55,6 +55,7 @@ export const signIn = asyncHandler(async (req, res, next) => {
       process.env.JWT_SECRET
     );
 
+    // Remove password from the user object before sending it to the client
     const { password: pass, ...rest } = validUser.toObject();
 
     res

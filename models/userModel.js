@@ -38,8 +38,46 @@ const userSchema = new mongoose.Schema(
         "https://res.cloudinary.com/dq7vq8fbj/image/upload/v1631017866/avatars/default_avatar_q6jv4b.png",
     },
     vDot: {
-      type: Number,
-      default: 0,
+      value: {
+        type: Number,
+        default: null,
+      },
+      calculatedFrom: {
+        distance: {
+          type: Number,
+          default: null,
+        },
+        time: {
+          type: Number,
+          default: null,
+        },
+        date: {
+          type: Date,
+          default: null,
+        },
+      },
+      trainingPaces: {
+        easy: {
+          type: String,
+          default: null,
+        },
+        marathon: {
+          type: String,
+          default: null,
+        },
+        threshold: {
+          type: String,
+          default: null,
+        },
+        interval: {
+          type: String,
+          default: null,
+        },
+        repetition: {
+          type: String,
+          default: null,
+        },
+      },
     },
     personalBests: {
       fiveK: {
@@ -167,7 +205,7 @@ const userSchema = new mongoose.Schema(
           ],
         },
         timeInSeconds: Number,
-        date: { type: Date, default: Date.now }
+        date: { type: Date, default: Date.now },
       },
     ],
     trainingPlans: [
@@ -181,8 +219,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true, // This replaces the manual createdAt and adds updatedAt
   }
 );
-
-
 
 const User = mongoose.model("User", userSchema);
 export default User;
