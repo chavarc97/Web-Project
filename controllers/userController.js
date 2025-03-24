@@ -2,8 +2,38 @@ import { errorHandler } from "../middleware/error.js";
 import bcryptjs from "bcryptjs";
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
-import jwt from "jsonwebtoken";
 import { calculateVdot, getTrainingPaces } from "../utils/vDotCalculator.js";
+import { json } from "express";
+
+export const updateUser = asyncHandler(async (req, res, next) => {
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, "You can only update your own account!"));
+  try {
+    // If password is provided, hash it
+    if (req.body.password) {
+      req.body.password = bcryptjs.hashSync(req.body.password, 10);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        password: req.body.password,
+        username: req.body.username,
+        email: req.body.email,
+        avatar: req.body.avatar,
+      },
+      { new: true }
+    );
+
+    // destructure the password from the rest of the user object
+    const { password, ...rest } = updatedUser.toObject();
+    // return the rest of the user object in the response
+    res.status(200).json(rest);
+
+  } catch (error) {
+    next(error);
+  }
+});
 
 export const setVdot = asyncHandler(async (req, res, next) => {
   if (req.user.id !== req.params.id)
@@ -54,28 +84,80 @@ export const setVdot = asyncHandler(async (req, res, next) => {
 });
 
 export const updatePBs = asyncHandler(async (req, res, next) => {
-    if (req.user.id !== req.params.id)
-        return next(errorHandler(401, "You can only update your own account!"));
-    try {
-        const { personalBests } = req.body;
-        const user = await User.findById(req.params.id);
-    
-        if (!user) {
-        return next(errorHandler(404, "User not found"));
-        }
-    
-        // Update personal bests
-        user.personalBests = personalBests;
-    
-        await user.save();
-    
-        // delete password from user object to avoid sending it to the client
-        const { password: pass, ...rest } = user.toObject();
-        res.status(200).json({
-        message: "Personal bests updated successfully",
-        user: rest,
-        });
-    } catch (error) {
-        next(error);
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, "You can only update your own account!"));
+  try {
+    const { personalBests } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
     }
+
+    // Update personal bests
+    user.personalBests = personalBests;
+
+    await user.save();
+
+    // delete password from user object to avoid sending it to the client
+    const { password: pass, ...rest } = user.toObject();
+    res.status(200).json({
+      message: "Personal bests updated successfully",
+      user: rest,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const getUser = asyncHandler(async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select("-password");
+
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const getAllUsers = asyncHandler(async (req, res, next) => {
+  try {
+    const users = await User.find({}).select("-password");
+
+    if (!users) {
+      return next(errorHandler(404, "No users found"));
+    }
+
+    res.status(200).json(users);
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const deleteUser = asyncHandler(async (req, res, next) => {
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, "You can only delete your own account!"));
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+
+    res.status(200).json({
+      message: "User deleted successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        vDot: user.vDot,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
