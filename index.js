@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import colors from "colors";
 import authRouter from "./routes/authRoutes.js"
+import userRouter from "./routes/userRoutes.js";
 import connectDB from "./config/connection.js";
 
 const PORT = process.env.PORT || 3000;
@@ -21,6 +22,7 @@ app.listen(PORT,() => {
 
 // routes
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/user", userRouter);
 
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500

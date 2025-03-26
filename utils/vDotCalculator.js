@@ -1,5 +1,5 @@
 // utils/vdotCalculator.js
-import { vdotTable } from "./vDotTable";
+import { vdotTable } from "./vDotTable.js";
 
 /**
  * Calculate VDOT from race performance using Jack Daniels' formula

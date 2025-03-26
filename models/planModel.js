@@ -53,3 +53,5 @@ const trainingPlanSchema = new mongoose.Schema({
 
 
 const TrainingPlan = mongoose.model('TrainingPlan', trainingPlanSchema);
+
+export default TrainingPlan;

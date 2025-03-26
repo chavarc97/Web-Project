@@ -20,3 +20,6 @@ router.put("/vdot/:id", verifyToken, setVdot);
 router.get("/", verifyToken, getAllUsers);
 // Delete user
 router.delete("/:id", verifyToken, deleteUser);
+
+
+export default router;
