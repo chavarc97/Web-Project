@@ -29,7 +29,6 @@ export const updateUser = asyncHandler(async (req, res, next) => {
     const { password, ...rest } = updatedUser.toObject();
     // return the rest of the user object in the response
     res.status(200).json(rest);
-
   } catch (error) {
     next(error);
   }
@@ -155,6 +154,35 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
         name: user.name,
         email: user.email,
         vDot: user.vDot,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const pushTrainingPlan = asyncHandler(async (req, res, next) => {
+  const { TrainingPlan } = req.body;
+  // Check if TrainingPlan is provided
+  if (!TrainingPlan) {
+    return errorHandler(400, "TrainingPlan is required");
+  }
+  // update the training plan for the user
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+    user.trainingPlan = TrainingPlan;
+    await user.save();
+    res.status(200).json({
+      message: "Training plan updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        vDot: user.vDot,
+        trainingPlan: user.trainingPlan,
       },
     });
   } catch (error) {
