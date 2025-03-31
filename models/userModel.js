@@ -220,5 +220,11 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.pre('remove', async function(next) {
+  await TrainingPlan.deleteMany({ user: this._id });
+  await Workout.deleteMany({ user: this._id });
+  next();
+});
+
 const User = mongoose.model("User", userSchema);
 export default User;

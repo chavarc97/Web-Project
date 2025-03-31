@@ -5,20 +5,16 @@ import { errorHandler } from "../middleware/error.js";
 import User from "../models/userModel.js";
 
 export const createWorkout = asyncHandler(async (req, res, next) => {
-  const { workoutName, warmUp, work, coolDown, user } = req.body;
-  // Check if workoutName is provided
-  if (!workoutName) {
-    return errorHandler(400, "Workout name is required");
+  const { workoutName, warmUp, work, coolDown, user, isTemplate } = req.body;
+
+  // Validate Vdot paces
+  if(warmUp?.pace || coolDown?.pace) {
+    const userData = await User.findById(user);
+    if (!userData?.vdot?.value) {
+      return errorHandler(400, "User Must have a Vdot value to set paces");
+    }
   }
 
-  if (!user) {
-    return errorHandler(400, "User is required");
-  }
-  // Check if user exists
-  const userExists = await User.findById(user);
-  if (!userExists) {
-    return errorHandler(404, "User not found");
-  }
   try {
     const workout = await Workout.create({
       workoutName,
@@ -26,9 +22,10 @@ export const createWorkout = asyncHandler(async (req, res, next) => {
       work,
       coolDown,
       user,
+      isTemplate,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -36,7 +33,7 @@ export const addToTrainingPlan = asyncHandler(async (req, res, next) => {
   // receive an array of workouts for the week
   const { workouts, date, week, user, totalDistance } = req.body;
 
-  const { day, workout, comment } = req.body;
+  const { day, workoutId, comment } = req.body;
   // Check if day is provided
   if (!day) {
     return errorHandler(400, "Day is required");
@@ -53,7 +50,7 @@ export const addToTrainingPlan = asyncHandler(async (req, res, next) => {
   // push the workout into workouts array
   workouts.push({
     day,
-    workout,
+    workoutId,
     comment,
   });
 
@@ -223,4 +220,98 @@ export const deleteWorkout = asyncHandler(async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+
+// Get workout by ID
+export const getWorkoutById = asyncHandler(async (req, res, next) => {
+  const workout = await Workout.findOne({
+    _id: req.params.id,
+    user: req.params.user
+  }).populate('user', 'username avatar');
+
+  if (!workout) {
+    return next(errorHandler(404, 'Workout not found'));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: workout
+  });
+});
+
+// Update training plan
+export const updateTrainingPlan = asyncHandler(async (req, res, next) => {
+  const { week, workouts } = req.body;
+  
+  const plan = await TrainingPlan.findOneAndUpdate(
+    { _id: req.params.id, user: req.params.user },
+    { week, workouts },
+    { new: true, runValidators: true }
+  ).populate('workouts.workout');
+
+  if (!plan) {
+    return next(errorHandler(404, 'Training plan not found'));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: plan
+  });
+});
+
+// Delete training plan
+export const deleteTrainingPlan = asyncHandler(async (req, res, next) => {
+  const plan = await TrainingPlan.findOneAndDelete({
+    _id: req.params.id,
+    user: req.params.user
+  });
+
+  if (!plan) {
+    return next(errorHandler(404, 'Training plan not found'));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {}
+  });
+});
+
+// Mark workout as complete
+export const completeWorkout = asyncHandler(async (req, res, next) => {
+  const { planId, workoutId, actualDistance, notes } = req.body;
+
+  const plan = await TrainingPlan.findOne({
+    _id: planId,
+    user: req.params.user
+  });
+
+  if (!plan) {
+    return next(errorHandler(404, 'Training plan not found'));
+  }
+
+  const workoutIndex = plan.workouts.findIndex(
+    w => w.workout.toString() === workoutId
+  );
+
+  if (workoutIndex === -1) {
+    return next(errorHandler(404, 'Workout not found in plan'));
+  }
+
+  plan.workouts[workoutIndex].completed = true;
+  plan.workouts[workoutIndex].completedAt = new Date();
+  plan.workouts[workoutIndex].actualDistance = actualDistance;
+  plan.workouts[workoutIndex].notes = notes;
+
+  // Update completed distance
+  plan.completedDistance = plan.workouts
+    .filter(w => w.completed)
+    .reduce((sum, w) => sum + (w.actualDistance || 0), 0);
+
+  await plan.save();
+
+  res.status(200).json({
+    success: true,
+    data: plan
+  });
 });

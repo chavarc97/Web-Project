@@ -34,8 +34,19 @@ const workoutSchema = new mongoose.Schema({
     minlength: [2, "Workout name must be at least 2 characters"],
     maxlength: [25, "Workout name cannot exceed 50 characters"],
   },
+  estimatedDuration: Number,
   warmUp: {
-    type: String,
+    time: {
+      type: String,
+      match: [/^([0-5][0-9]):[0-5][0-9]$/, "Please provide time in mm:ss format"],
+    },
+    distance: {
+      type: Number,
+      unit: {
+        type: String,
+        enum: ["m", "km", "mi"],
+      },
+    },
     pace: {
       type: paceSchema,
       default: null,
@@ -82,9 +93,83 @@ const workoutSchema = new mongoose.Schema({
     type: mongoose.Schema.ObjectId,
     ref: "User",
     required: [true, "User is required"],
+    index: true,
+  },
+  isTemplate: {
+    type: Boolean,
+    default: false,
   },
 }, {
     timestamps: true,
+});
+
+workoutSchema.virtual('totalDistance').get(function () {
+  let total = 0;
+  // check if the warm up has distance if not asume it as easy pace
+  if(this.warmUp?.distance?.value) {
+    total += this.warmUp.distance.value;
+  }
+  else if(this.warmUp?.pace) {
+    let sum = 0;
+    // divide warm up time by pace to get the average distance
+    const pace = this.warmUp.pace.pace.split(':');
+    const paceInSeconds = parseInt(pace[0]) * 60 + parseInt(pace[1]);
+    const time = this.warmUp.time.split(':');
+    const timeInSeconds = parseInt(time[0]) * 60 + parseInt(time[1]);
+    const distance = timeInSeconds / paceInSeconds;
+    total += distance;  
+  }
+  // check if the cooldown exists and if it has distance add it if not assume it as easy pace
+  if(this.coolDown?.distance?.value) {
+    total += this.coolDown.distance.value;
+  }
+  else if(this.coolDown?.pace) {
+    let sum = 0;
+    // divide cooldown time by pace to get the average distance
+    const pace = this.coolDown.pace.pace.split(':');
+    const paceInSeconds = parseInt(pace[0]) * 60 + parseInt(pace[1]);
+    const time = this.coolDown.time.split(':');
+    const timeInSeconds = parseInt(time[0]) * 60 + parseInt(time[1]);
+    const distance = timeInSeconds / paceInSeconds;
+    total += distance;  
+  }
+  // check if theres any work with distance if not assume it as the target pace
+  if(this.work?.length > 0) {
+    this.work.forEach((work) => {
+      if(work.type === "distance") {
+        total += work.distance.value;
+      }
+      else if(work.type === "time") {
+        let sum = 0;
+        // divide work time by pace to get the average distance
+        const pace = work.pace.pace.split(':');
+        const paceInSeconds = parseInt(pace[0]) * 60 + parseInt(pace[1]);
+        const time = work.time.split(':');
+        const timeInSeconds = parseInt(time[0]) * 60 + parseInt(time[1]);
+        const distance = timeInSeconds / paceInSeconds;
+        total += distance;  
+      }
+    });
+  }
+  // check if the work has repetitions
+  if(this.work?.length > 0) {
+    this.work.forEach((work) => {
+      if(work.repetitions) {
+        total += work.repetitions * work.distance.value;
+      }
+    });
+  }
+  // return the total distance
+  return total;
+})
+
+// Add cascade delete middleware
+workoutSchema.pre('remove', async function(next) {
+  await TrainingPlan.updateMany(
+    { 'workouts.workout': this._id },
+    { $pull: { workouts: { workout: this._id } } }
+  );
+  next();
 });
 
 const Workout = mongoose.model("Workout", workoutSchema);
