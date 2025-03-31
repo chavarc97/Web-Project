@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyUser";
+import { checkPlanOwnership } from "../middleware/workoutOwnership";
 import {
   createWorkout,
   addToTrainingPlan,
@@ -8,18 +9,26 @@ import {
   getWorkout,
   updateWorkout,
   deleteWorkout,
+  completeWorkout,
 } from "../controllers/trainingController";
 
 const router = express.Router();
 
 // Routes
-router.post("/create", verifyToken, createWorkout);
-router.post("/add-to-plan", verifyToken, addToTrainingPlan);
-router.get("/get-training-plan/:id", verifyToken, getTrainingPlan);
-router.get("/get-all-workouts/:id", verifyToken, getAllWorkouts);
-router.get("/get-workout/:id", verifyToken, getWorkout);
-router.put("/update/:id", verifyToken, updateWorkout);
-router.delete("/delete/:id", verifyToken, deleteWorkout);
+router.route("/")
+  .post(createWorkout)
+  .get(getAllWorkouts);
 
-// Export router
+router.route("/:id")
+  .get(checkPlanOwnership, getWorkout)
+  .put(checkPlanOwnership, updateWorkout)
+  .delete(checkPlanOwnership, deleteWorkout);
+
+router.route("/complete/:id")
+  .put(checkPlanOwnership, completeWorkout);
+
+router.route("/training-plan/:id")
+  .get(verifyToken, getTrainingPlan)
+  .post(verifyToken, addToTrainingPlan);
+
 export default router;

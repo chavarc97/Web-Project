@@ -58,6 +58,30 @@ export const setVdot = asyncHandler(async (req, res, next) => {
 
     // Option 2: Calculate VDOT from race performance
     // todo: validate racePerformance
+    if (personalBests) {
+      const { distance, time, date } = personalBests;
+      const vDot = calculateVdot(distance, time);
+      user.vDot.value = vDot;
+      const paces = getTrainingPaces(vDot);
+      user.vDot.trainingPaces.easy = paces.easy;
+      user.vDot.trainingPaces.marathon = paces.marathon;
+      user.vDot.trainingPaces.threshold = paces.threshold;
+      user.vDot.trainingPaces.interval = paces.interval;
+      user.vDot.trainingPaces.repetition = paces.repetition;
+
+      // Update personal bests
+      user.personalBests = personalBests;
+      user.personalBests.distance = distance;
+      user.personalBests.time = time;
+      user.personalBests.date = date;
+      user.personalBests.vDot = vDot;
+      user.personalBests.vDot.trainingPaces = paces;
+      user.personalBests.vDot.calculatedFrom = {
+        distance: distance,
+        time: time,
+        date: date,
+      };
+    }
 
     await user.save();
 
