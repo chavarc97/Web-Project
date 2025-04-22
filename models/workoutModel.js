@@ -133,30 +133,22 @@ workoutSchema.virtual('totalDistance').get(function () {
     const distance = timeInSeconds / paceInSeconds;
     total += distance;  
   }
-  // check if theres any work with distance if not assume it as the target pace
-  if(this.work?.length > 0) {
+  // calculate total distance for work blocks, accounting for repetitions and both distance/time types
+  if (this.work?.length > 0) {
     this.work.forEach((work) => {
-      if(work.type === "distance") {
-        total += work.distance.value;
+      let distance = 0;
+
+      if (work.type === "distance" && work.distance?.value) {
+        distance = work.distance.value;
+      } else if (work.type === "time" && work.pace?.pace && work.time) {
+        const paceParts = work.pace.pace.split(':');
+        const paceInSeconds = parseInt(paceParts[0]) * 60 + parseInt(paceParts[1]);
+        const timeParts = work.time.split(':');
+        const timeInSeconds = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+        distance = timeInSeconds / paceInSeconds;
       }
-      else if(work.type === "time") {
-        let sum = 0;
-        // divide work time by pace to get the average distance
-        const pace = work.pace.pace.split(':');
-        const paceInSeconds = parseInt(pace[0]) * 60 + parseInt(pace[1]);
-        const time = work.time.split(':');
-        const timeInSeconds = parseInt(time[0]) * 60 + parseInt(time[1]);
-        const distance = timeInSeconds / paceInSeconds;
-        total += distance;  
-      }
-    });
-  }
-  // check if the work has repetitions
-  if(this.work?.length > 0) {
-    this.work.forEach((work) => {
-      if(work.repetitions) {
-        total += work.repetitions * work.distance.value;
-      }
+
+      total += distance * (work.repetitions || 1);
     });
   }
   // return the total distance
