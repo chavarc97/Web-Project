@@ -95,6 +95,10 @@ const workoutSchema = new mongoose.Schema({
     required: [true, "User is required"],
     index: true,
   },
+  coach: {
+    type: mongoose.Schema.ObjectId,
+    ref: "User",
+  },
   isTemplate: {
     type: Boolean,
     default: false,
