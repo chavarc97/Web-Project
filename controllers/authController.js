@@ -3,29 +3,50 @@ import bcryptjs from "bcryptjs";
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
-
-export const test = asyncHandler(async (req, res, next) => {
-  res.json({
-    message: "Auth route is working",
-  });
-});
+import { signupSchema, signinSchema } from "../validations/authValidation.js";
 
 // signUp controller
 export const signUp = asyncHandler(async (req, res, next) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, role } = req.body;
+  
+  // Validate role against allowed values from schema
+  if (role && !["user", "admin", "coach"].includes(role)) {
+    return res.status(400).json({ 
+      success: false,
+      message: "Invalid role. Allowed roles are: user, admin, coach"
+    });
+  }
+  
   const hashedPassword = bcryptjs.hashSync(password, 10);
-  const newUser = new User({ username, email, password: hashedPassword });
+  
+  const newUser = new User({ 
+    username, 
+    email, 
+    password: hashedPassword,
+    role // This should work since your schema allows this field with these values
+  });
+  
   try {
     await newUser.save();
     res.status(201).json({ 
-      message: "User created successfully" ,
+      success: true,
+      message: "User created successfully",
       user: {
         username: newUser.username,
         email: newUser.email,
         avatar: newUser.avatar,
+        role: newUser.role,
       },
     });
   } catch (error) {
+    // Handle mongoose validation errors more explicitly
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: validationErrors.join(', ')
+      });
+    }
     next(error);
   }
 });
@@ -35,14 +56,12 @@ export const signIn = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
   try {
     // Explicitly request the password field
-    const validUser = await User.findOne({ email }).select('+password');
+    const validUser = await User.findOne({ email }).select("+password");
 
     if (!validUser) {
       return next(errorHandler(404, "User not found"));
     }
 
-    console.log('Password from database:', validUser.password);
-    
     const isPasswordValid = bcryptjs.compareSync(password, validUser.password);
     if (!isPasswordValid) {
       return next(errorHandler(401, "Wrong credentials!"));
@@ -64,7 +83,11 @@ export const signIn = asyncHandler(async (req, res, next) => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       })
       .status(200)
-      .json(rest);
+      .json({
+        message: "User signed in successfully",
+        user: rest,
+        jwt: token,
+      });
   } catch (error) {
     next(error);
   }

@@ -1,22 +1,29 @@
 import express from "express";
 // import authControllers
 import {
-  test,
   signUp,
   signIn,
   google,
   signOut,
-} from "../controllers/authControler.js";
+} from "../controllers/authController.js";
+import { signupSchema, signinSchema } from "../validations/authValidation.js";
+
 const router = express.Router();
 
-// declare routes
-router.get("/test", test);
+const validate = (schema) => (req, res, next) => {
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ success: false, message: error.details[0].message });
+  }
+  next();
+};
 
+// declare routes
 // signUp 
-router.post("/signup", signUp);
+router.post("/signup", validate(signupSchema), signUp);
 
 // signIn
-router.post("/signin", signIn);
+router.post("/signin", validate(signinSchema), signIn);
 // Google signIn
 router.post("/google", google);
 // signOut

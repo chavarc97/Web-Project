@@ -10,25 +10,21 @@ import {
   updateWorkout,
   deleteWorkout,
   completeWorkout,
-} from "../controllers/trainingController";
+} from "../controllers/training.Controller";
 
 const router = express.Router();
 
 // Routes
-router.route("/")
-  .post(createWorkout)
-  .get(getAllWorkouts);
+router.route("/training-plan/:id")
+  .get(verifyToken, getTrainingPlan)
+  .post(verifyToken, addToTrainingPlan);
+
+router.route("/complete/:id")
+  .put(checkPlanOwnership, completeWorkout);
 
 router.route("/:id")
   .get(checkPlanOwnership, getWorkout)
   .put(checkPlanOwnership, updateWorkout)
   .delete(checkPlanOwnership, deleteWorkout);
-
-router.route("/complete/:id")
-  .put(checkPlanOwnership, completeWorkout);
-
-router.route("/training-plan/:id")
-  .get(verifyToken, getTrainingPlan)
-  .post(verifyToken, addToTrainingPlan);
 
 export default router;

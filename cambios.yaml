@@ -1,0 +1,60 @@
+session: 2025-05-04
+author: Tagle
+project: Web-Project - Backend Entrenamientos
+
+changes:
+  - description: Se eliminó archivo duplicado
+    file: index.js
+    action: removed
+    reason: Redundancia innecesaria
+
+  - description: Limpieza en rutas
+    file: routes/userRoutes.js
+    action: updated
+    changes:
+      - Eliminadas rutas duplicadas de signup y signin
+
+  - description: Validación con Joi para autenticación
+    file: validations/authValidation.js
+    action: created
+    contents:
+      - signupSchema
+      - signinSchema
+    used_in:
+      - authController.signup
+      - authController.signin
+
+  - description: Validación con Joi para creación de workout
+    file: validations/workoutValidation.js
+    action: updated
+    additions:
+      - createWorkoutSchema
+    used_in:
+      - trainingController.createWorkout
+
+  - description: Validación con Joi para agregar a plan de entrenamiento
+    file: validations/workoutValidation.js
+    action: updated
+    additions:
+      - addToTrainingPlanSchema
+    used_in:
+      - trainingController.addToTrainingPlan
+
+  - description: Se actualizó createWorkout
+    file: controllers/trainingController.js
+    action: updated
+    changes:
+      - Se añadió validación con createWorkoutSchema
+      - Se eliminó validación manual redundante
+      - Se agregó respuesta con status 201 y workout creado
+
+  - description: Se actualizó addToTrainingPlan
+    file: controllers/trainingController.js
+    action: updated
+    changes:
+      - Se añadió validación con addToTrainingPlanSchema
+
+notes:
+  - Se mejoró la seguridad del backend al validar los datos entrantes.
+  - Se organizó mejor la lógica de controladores y validaciones.
+  - Se preparó la base para extender validaciones a update y delete.

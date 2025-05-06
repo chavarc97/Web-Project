@@ -11,14 +11,13 @@ export const checkWorkoutOwnership = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // check if its your workout or if you are the coach
-  if(workout.user.toString() != req.user.id || workout.coach.toString() != req.user.id && req.user.role !== 'coach') {
+  if (workout.user.toString() !== req.user.id && req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
       error: 'Not authorized to access this workout'
     });
   }
-  // Go to the next middleware
+
   next();
 });
 
@@ -32,7 +31,7 @@ export const checkPlanOwnership = asyncHandler(async (req, res, next) => {
     });
   }
 
-  if (plan.user.toString() !== req.user.id || req.user.role !== 'coach') {
+  if (plan.user.toString() !== req.user.id && req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
       error: 'Not authorized to access this plan'

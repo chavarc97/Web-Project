@@ -34,6 +34,7 @@ export const updateUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+
 export const setVdot = asyncHandler(async (req, res, next) => {
   if (req.user.id !== req.params.id)
     return next(errorHandler(401, "You can only update your own account!"));
@@ -57,7 +58,6 @@ export const setVdot = asyncHandler(async (req, res, next) => {
     }
 
     // Option 2: Calculate VDOT from race performance
-    // todo: validate racePerformance
     if (personalBests) {
       const { distance, time, date } = personalBests;
       const vDot = calculateVdot(distance, time);
@@ -87,20 +87,26 @@ export const setVdot = asyncHandler(async (req, res, next) => {
 
     // delete password from user object to avoid sending it to the client
     const { password: pass, ...rest } = user.toObject();
-    res.status(200).json({
+    
+    // Prepare response object
+    const responseData = {
       message: "VDOT updated successfully",
-      user: {
-        ...rest,
-        vDot: {
-          ...rest.vDot,
-          calculatedFrom: {
-            distance: personalBests.distance,
-            time: personalBests.time,
-            date: personalBests.date,
-          },
-        },
-      },
-    });
+      user: rest
+    };
+    
+    // Only add calculatedFrom if personalBests was provided
+    if (personalBests) {
+      responseData.user.vDot = {
+        ...rest.vDot,
+        calculatedFrom: {
+          distance: personalBests.distance,
+          time: personalBests.time,
+          date: personalBests.date,
+        }
+      };
+    }
+    
+    res.status(200).json(responseData);
   } catch (error) {
     next(error);
   }
@@ -110,19 +116,47 @@ export const updatePBs = asyncHandler(async (req, res, next) => {
   if (req.user.id !== req.params.id)
     return next(errorHandler(401, "You can only update your own account!"));
   try {
-    const { personalBests } = req.body;
     const user = await User.findById(req.params.id);
 
     if (!user) {
       return next(errorHandler(404, "User not found"));
     }
 
-    // Update personal bests
-    user.personalBests = personalBests;
+    const { personalBests } = req.body;
+    
+    // Only update provided race types
+    if (personalBests) {
+      const raceTypes = ['fiveK', 'tenK', 'halfMarathon', 'marathon'];
+      
+      raceTypes.forEach(raceType => {
+        if (personalBests[raceType]) {
+          // Only update fields that were provided
+          const raceData = personalBests[raceType];
+          
+          // Convert time string to seconds if time was provided
+          if (raceData.time) {
+            // Validate time format
+            const timeRegex = /^(?:2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]$/;
+            if (!timeRegex.test(raceData.time)) {
+              return next(errorHandler(400, `Invalid time format for ${raceType}. Please use HH:MM:SS format`));
+            }
+            
+            // Convert time to seconds
+            const [hours, minutes, seconds] = raceData.time.split(':').map(Number);
+            raceData.timeInSeconds = hours * 3600 + minutes * 60 + seconds;
+          }
+          
+          // Update only provided fields
+          Object.keys(raceData).forEach(field => {
+            user.personalBests[raceType][field] = raceData[field];
+          });
+        }
+      });
+    }
 
     await user.save();
 
-    // delete password from user object to avoid sending it to the client
+    // Remove password from user object to avoid sending it to client
     const { password: pass, ...rest } = user.toObject();
     res.status(200).json({
       message: "Personal bests updated successfully",

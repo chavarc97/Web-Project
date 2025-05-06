@@ -5,6 +5,7 @@ import colors from "colors";
 import authRouter from "./routes/authRoutes.js"
 import userRouter from "./routes/userRoutes.js";
 import connectDB from "./config/connection.js";
+import cors from "cors";
 
 const PORT = process.env.PORT || 3000;
 
@@ -12,6 +13,20 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 const app = express();
+
+// enable cors
+const allowedOrigins = ["http://localhost:5173", "https://run-app-interface.vercel.app/"];
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); 
 

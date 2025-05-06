@@ -1,5 +1,12 @@
 import express from "express";
-import {updatePBs, updateUser, getAllUsers, getUser, deleteUser, setVdot} from "../controllers/userController.js";
+import {
+  updatePBs,
+  updateUser,
+  getAllUsers,
+  getUser,
+  deleteUser,
+  setVdot,
+} from "../controllers/userController.js";
 import { verifyToken } from "../middleware/verifyUser.js";
 
 const router = express.Router();
@@ -16,10 +23,5 @@ router.get("/", verifyToken, getAllUsers);
 router.delete("/:id", verifyToken, deleteUser);
 // Set Vdot
 router.put("/vdot/:id", verifyToken, setVdot);
-// Get all users
-router.get("/", verifyToken, getAllUsers);
-// Delete user
-router.delete("/:id", verifyToken, deleteUser);
-
 
 export default router;

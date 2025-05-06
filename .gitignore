@@ -31,3 +31,4 @@ Thumbs.db
 *.sqlite
 # test files
 *.test.js
+.env

@@ -16,7 +16,6 @@ const trainingPlanSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Week is required"],
       min: [1, "Week must be at least 1"],
-      max: [53, "Week must not exceed 53"],
     },
     workouts: [
       {

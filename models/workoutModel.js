@@ -82,7 +82,17 @@ const workoutSchema = new mongoose.Schema({
     },
   ],
   coolDown: {
-    type: String,
+    time: {
+      type: String,
+      match: [/^([0-5][0-9]):[0-5][0-9]$/, "Please provide time in mm:ss format"],
+    },
+    distance: {
+      type: Number,
+      unit: {
+        type: String,
+        enum: ["m", "km", "mi"],
+      },
+    },
     pace: {
       type: paceSchema,
       default: null,
@@ -94,15 +104,7 @@ const workoutSchema = new mongoose.Schema({
     ref: "User",
     required: [true, "User is required"],
     index: true,
-  },
-  coach: {
-    type: mongoose.Schema.ObjectId,
-    ref: "User",
-  },
-  isTemplate: {
-    type: Boolean,
-    default: false,
-  },
+  }
 }, {
     timestamps: true,
 });
@@ -137,21 +139,19 @@ workoutSchema.virtual('totalDistance').get(function () {
     const distance = timeInSeconds / paceInSeconds;
     total += distance;  
   }
-  // calculate total distance for work blocks, accounting for repetitions and both distance/time types
-  if (this.work?.length > 0) {
+  // check if theres any work with distance if not assume it as the target pace
+  if(this.work?.length > 0) {
     this.work.forEach((work) => {
       let distance = 0;
-
-      if (work.type === "distance" && work.distance?.value) {
+      if(work.type === "distance") {
         distance = work.distance.value;
-      } else if (work.type === "time" && work.pace?.pace && work.time) {
-        const paceParts = work.pace.pace.split(':');
-        const paceInSeconds = parseInt(paceParts[0]) * 60 + parseInt(paceParts[1]);
-        const timeParts = work.time.split(':');
-        const timeInSeconds = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+      } else if(work.type === "time") {
+        const pace = work.pace.pace.split(':');
+        const paceInSeconds = parseInt(pace[0]) * 60 + parseInt(pace[1]);
+        const time = work.time.split(':');
+        const timeInSeconds = parseInt(time[0]) * 60 + parseInt(time[1]);
         distance = timeInSeconds / paceInSeconds;
       }
-
       total += distance * (work.repetitions || 1);
     });
   }

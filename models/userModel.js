@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import TrainingPlan from "./planModel.js";
-import Workout from "./workoutModel.js";
 
 const userSchema = new mongoose.Schema(
   {
