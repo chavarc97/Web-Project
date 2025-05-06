@@ -2,6 +2,7 @@ import express from "express";
 import {
   updatePBs,
   updateUpcomingRaces,
+  updateRecentRaces,
   updateUser,
   getAllUsers,
   getUser,
@@ -19,7 +20,7 @@ router.put("/pb/:id", verifyToken, updatePBs);
 // Update upcoming races
 router.put("/upcoming/:id", verifyToken, updateUpcomingRaces);
 // Update recent races
-router.put("/recent/:id", verifyToken, updateUpcomingRaces);
+router.put("/recent/:id",verifyToken ,updateRecentRaces);
 // Get user
 router.get("/:id", verifyToken, getUser);
 // Get all users

@@ -150,11 +150,16 @@ export const updateUpcomingRaces = asyncHandler(async (req, res, next) => {
     if (!user) {
       return next(errorHandler(404, "User not found"));
     }
-    const { upcomingRaces } = req.body;
-    if (!upcomingRaces) {
-      return next(errorHandler(400, " upcomingRaces is required"));
+    const { name, date, projectedTime } = req.body;
+    if (!name || !date || !projectedTime) {
+      return next(errorHandler(400, "All fields are required"));
     }
-    user.upcomingRaces = upcomingRaces;
+    const upcomingRace = {
+      name,
+      date,
+      projectedTime,
+    };
+    user.upcomingRaces.push(upcomingRace);
     await user.save();
     // delete password from user object to avoid sending it to the client
     const { password: pass, ...rest } = user.toObject();
@@ -168,8 +173,6 @@ export const updateUpcomingRaces = asyncHandler(async (req, res, next) => {
 });
 
 export const updateRecentRaces = asyncHandler(async (req, res, next) => {
-  if (req.user.id !== req.params.id)
-    return next(errorHandler(401, "You can only update your own account!"));
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
