@@ -34,7 +34,6 @@ export const updateUser = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 export const setVdot = asyncHandler(async (req, res, next) => {
   if (req.user.id !== req.params.id)
     return next(errorHandler(401, "You can only update your own account!"));
@@ -87,13 +86,13 @@ export const setVdot = asyncHandler(async (req, res, next) => {
 
     // delete password from user object to avoid sending it to the client
     const { password: pass, ...rest } = user.toObject();
-    
+
     // Prepare response object
     const responseData = {
       message: "VDOT updated successfully",
-      user: rest
+      user: rest,
     };
-    
+
     // Only add calculatedFrom if personalBests was provided
     if (personalBests) {
       responseData.user.vDot = {
@@ -102,11 +101,100 @@ export const setVdot = asyncHandler(async (req, res, next) => {
           distance: personalBests.distance,
           time: personalBests.time,
           date: personalBests.date,
-        }
+        },
       };
     }
-    
+
     res.status(200).json(responseData);
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const updateVdot = asyncHandler(async (req, res, next) => {
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, "You can only update your own account!"));
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+    const { vDot } = req.body;
+    if (!vDot) {
+      return next(errorHandler(400, "VDOT is required"));
+    }
+    user.vDot.value = vDot;
+    const paces = getTrainingPaces(vDot);
+    user.vDot.trainingPaces.easy = paces.easy;
+    user.vDot.trainingPaces.marathon = paces.marathon;
+    user.vDot.trainingPaces.threshold = paces.threshold;
+    user.vDot.trainingPaces.interval = paces.interval;
+    user.vDot.trainingPaces.repetition = paces.repetition;
+    await user.save();
+    // delete password from user object to avoid sending it to the client
+    const { password: pass, ...rest } = user.toObject();
+    res.status(200).json({
+      message: "VDOT updated successfully",
+      user: rest,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const updateUpcomingRaces = asyncHandler(async (req, res, next) => {
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, "You can only update your own account!"));
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+    const { upcomingRaces } = req.body;
+    if (!upcomingRaces) {
+      return next(errorHandler(400, " upcomingRaces is required"));
+    }
+    user.upcomingRaces = upcomingRaces;
+    await user.save();
+    // delete password from user object to avoid sending it to the client
+    const { password: pass, ...rest } = user.toObject();
+    res.status(200).json({
+      message: "upcomingRaces updated successfully",
+      user: rest,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const updateRecentRaces = asyncHandler(async (req, res, next) => {
+  if (req.user.id !== req.params.id)
+    return next(errorHandler(401, "You can only update your own account!"));
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+    const { name, location, distance, time, timeInSeconds, date } = req.body;
+    if (!name || !location || !distance || !time || !timeInSeconds || !date) {
+      return next(errorHandler(400, "All fields are required"));
+    }
+    const recentRace = {
+      name,
+      location,
+      distance,
+      time,
+      timeInSeconds,
+      date,
+    };
+    user.recentRaces.push(recentRace);
+    await user.save();
+    // delete password from user object to avoid sending it to the client
+    const { password: pass, ...rest } = user.toObject();
+    res.status(200).json({
+      message: "recentRaces updated successfully",
+      user: rest,
+    });
   } catch (error) {
     next(error);
   }
@@ -123,31 +211,38 @@ export const updatePBs = asyncHandler(async (req, res, next) => {
     }
 
     const { personalBests } = req.body;
-    
+
     // Only update provided race types
     if (personalBests) {
-      const raceTypes = ['fiveK', 'tenK', 'halfMarathon', 'marathon'];
-      
-      raceTypes.forEach(raceType => {
+      const raceTypes = ["fiveK", "tenK", "halfMarathon", "marathon"];
+
+      raceTypes.forEach((raceType) => {
         if (personalBests[raceType]) {
           // Only update fields that were provided
           const raceData = personalBests[raceType];
-          
+
           // Convert time string to seconds if time was provided
           if (raceData.time) {
             // Validate time format
             const timeRegex = /^(?:2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]$/;
             if (!timeRegex.test(raceData.time)) {
-              return next(errorHandler(400, `Invalid time format for ${raceType}. Please use HH:MM:SS format`));
+              return next(
+                errorHandler(
+                  400,
+                  `Invalid time format for ${raceType}. Please use HH:MM:SS format`
+                )
+              );
             }
-            
+
             // Convert time to seconds
-            const [hours, minutes, seconds] = raceData.time.split(':').map(Number);
+            const [hours, minutes, seconds] = raceData.time
+              .split(":")
+              .map(Number);
             raceData.timeInSeconds = hours * 3600 + minutes * 60 + seconds;
           }
-          
+
           // Update only provided fields
-          Object.keys(raceData).forEach(field => {
+          Object.keys(raceData).forEach((field) => {
             user.personalBests[raceType][field] = raceData[field];
           });
         }
