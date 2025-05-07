@@ -195,7 +195,7 @@ const userSchema = new mongoose.Schema(
         location: String,
         distance: {
           type: Number,
-          enum: [5, 10, 21.0975, 42.195],
+          enum: [5, 10, 15, 16, 21.0975, 42.195],
         },
         time: {
           type: String,
