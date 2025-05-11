@@ -59,26 +59,34 @@ export const setVdot = asyncHandler(async (req, res, next) => {
     // Option 2: Calculate VDOT from race performance
     if (personalBests) {
       const { distance, time, date } = personalBests;
-      const vDot = calculateVdot(distance, time);
-      user.vDot.value = vDot;
-      const paces = getTrainingPaces(vDot);
-      user.vDot.trainingPaces.easy = paces.easy;
-      user.vDot.trainingPaces.marathon = paces.marathon;
-      user.vDot.trainingPaces.threshold = paces.threshold;
-      user.vDot.trainingPaces.interval = paces.interval;
-      user.vDot.trainingPaces.repetition = paces.repetition;
+      if (
+        !personalBests.distance ||
+        !personalBests.time ||
+        !personalBests.date
+      ) {
+        return next(
+          errorHandler(
+            400,
+            "Distance, time, and date are required for personal bests"
+          )
+        );
+      }
+      if (typeof personalBests.time !== "number") {
+        return next(errorHandler(400, "Time must be provided in seconds"));
+      }
 
-      // Update personal bests
-      user.personalBests = personalBests;
-      user.personalBests.distance = distance;
-      user.personalBests.time = time;
-      user.personalBests.date = date;
-      user.personalBests.vDot = vDot;
-      user.personalBests.vDot.trainingPaces = paces;
-      user.personalBests.vDot.calculatedFrom = {
-        distance: distance,
-        time: time,
-        date: date,
+      const vDot = calculateVdot(distance, time);
+
+      // Update training paces
+      const paces = getTrainingPaces(vDot);
+      user.vDot = {
+        value: vDot,
+        trainingPaces: paces,
+        calculatedFrom: {
+          distance,
+          time,
+          date,
+        },
       };
     }
 
