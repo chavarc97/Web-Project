@@ -1,30 +1,42 @@
 import express from "express";
-import { verifyToken } from "../middleware/verifyUser";
-import { checkPlanOwnership } from "../middleware/workoutOwnership";
+import { verifyToken } from "../middleware/verifyUser.js";
+import { checkPlanOwnership } from "../middleware/workoutOwnership.js";
 import {
+  getWeeklySummary,
   createWorkout,
-  addToTrainingPlan,
-  getTrainingPlan,
   getAllWorkouts,
-  getWorkout,
+  getWorkoutById,
   updateWorkout,
   deleteWorkout,
+  addToTrainingPlan,
+  getTrainingPlans,
+  getTrainingPlanById,
+  updateTrainingPlan,
+  deleteTrainingPlan,
   completeWorkout,
-} from "../controllers/training.Controller";
+} from "../controllers/training.Controller.js";
 
 const router = express.Router();
 
-// Routes
-router.route("/training-plan/:id")
-  .get(verifyToken, getTrainingPlan)
-  .post(verifyToken, addToTrainingPlan);
+// routes
+// summary
+router.get("summary/:user", verifyToken, getWeeklySummary);
+// workouts
+router.post("/workouts", verifyToken, createWorkout);
+// get the workouts of a user
+router.get("/workouts/:user", verifyToken, getAllWorkouts);
+router.get("/workouts/:id/:user", verifyToken, getWorkoutById);
+router.put("/workouts/:id/:user", verifyToken, updateWorkout);
+router.delete("/workouts/:id/:user", verifyToken, deleteWorkout);
 
-router.route("/complete/:id")
-  .put(checkPlanOwnership, completeWorkout);
+// Training Plans
+router.post("/plan", verifyToken, addToTrainingPlan);
+router.get("/plan/:user", verifyToken, getTrainingPlans);
+router.get("/plan/:id/:user", verifyToken, checkPlanOwnership, getTrainingPlanById);
+router.put("/plan/:id/:user", verifyToken, checkPlanOwnership, updateTrainingPlan);
+router.delete("/plan/:id/:user", verifyToken, checkPlanOwnership, deleteTrainingPlan);
+router.post("/complete/:user", verifyToken, completeWorkout);
 
-router.route("/:id")
-  .get(checkPlanOwnership, getWorkout)
-  .put(checkPlanOwnership, updateWorkout)
-  .delete(checkPlanOwnership, deleteWorkout);
+
 
 export default router;

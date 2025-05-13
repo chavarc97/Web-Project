@@ -5,6 +5,75 @@ import { errorHandler } from "../middleware/error.js";
 import User from "../models/userModel.js";
 import { createWorkoutSchema, addToTrainingPlanSchema } from "../validations/workoutValidation.js";
 
+
+/**
+ * @desc    Get weekly training summary for a user
+ * @route   GET /api/training/summary/:user
+ * @access  Private
+ */
+export const getWeeklySummary = asyncHandler(async (req, res, next) => {
+  const { user } = req.params;
+  
+  try {
+    // Check if user exists
+    const userExists = await User.findById(user);
+    if (!userExists) {
+      return next(errorHandler(404, "User not found"));
+    }
+    
+    // Get current week's training plans
+    const currentDate = new Date();
+    const startOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay() + 1));
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    
+    const weeklyPlans = await TrainingPlan.find({
+      user,
+      date: { $gte: startOfWeek, $lte: endOfWeek }
+    }).populate('workouts.workout');
+    
+    // Calculate summary
+    const summary = {
+      totalPlannedDistance: 0,
+      totalCompletedDistance: 0,
+      workoutsPlanned: 0,
+      workoutsCompleted: 0,
+      days: {
+        Monday: { planned: [], completed: [] },
+        Tuesday: { planned: [], completed: [] },
+        Wednesday: { planned: [], completed: [] },
+        Thursday: { planned: [], completed: [] },
+        Friday: { planned: [], completed: [] },
+        Saturday: { planned: [], completed: [] },
+        Sunday: { planned: [], completed: [] }
+      }
+    };
+    
+    weeklyPlans.forEach(plan => {
+      summary.totalPlannedDistance += plan.totalDistance || 0;
+      summary.totalCompletedDistance += plan.completedDistance || 0;
+      
+      plan.workouts.forEach(workout => {
+        summary.workoutsPlanned++;
+        if (workout.completed) summary.workoutsCompleted++;
+        
+        const daySummary = summary.days[workout.day];
+        if (daySummary) {
+          daySummary.planned.push(workout);
+          if (workout.completed) daySummary.completed.push(workout);
+        }
+      });
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: summary
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 /**
  * @desc    Create a new workout
  * @route   POST /api/training/workout
@@ -39,6 +108,11 @@ export const createWorkout = asyncHandler(async (req, res, next) => {
       coolDown,
       user,
       isTemplate: isTemplate || false,
+    });
+
+    // add workout to user workouts array
+    await User.findByIdAndUpdate(user, {
+      $push: { workouts: workout._id }
     });
 
     res.status(201).json({
@@ -206,6 +280,7 @@ export const addToTrainingPlan = asyncHandler(async (req, res, next) => {
     
     // Calculate total distance
     let calculatedDistance = 0;
+    const workoutDays = new Set();
     
     // Check if all workouts exist
     for (const workoutItem of workouts) {
@@ -214,7 +289,13 @@ export const addToTrainingPlan = asyncHandler(async (req, res, next) => {
         return next(errorHandler(404, `Workout ${workoutItem.workout} not found`));
       }
       
-      // Add to calculated distance if workout has a virtual totalDistance property
+      // Check for duplicate days in the same plan
+      if (workoutDays.has(workoutItem.day)) {
+        return next(errorHandler(400, `Duplicate day ${workoutItem.day} in plan`));
+      }
+      workoutDays.add(workoutItem.day);
+      
+      // Add to calculated distance
       if (workout.totalDistance) {
         calculatedDistance += workout.totalDistance;
       }
@@ -228,9 +309,16 @@ export const addToTrainingPlan = asyncHandler(async (req, res, next) => {
       user,
       totalDistance: calculatedDistance,
     });
+
+    // Add plan to user's training plans
+    await User.findByIdAndUpdate(user, {
+      $push: { trainingPlans: trainingPlan._id }
+    });
     
     // Populate workout details
-    const populatedPlan = await TrainingPlan.findById(trainingPlan._id).populate('workouts.workout');
+    const populatedPlan = await TrainingPlan.findById(trainingPlan._id)
+    .populate('workouts.workout')
+    .populate('user', 'username avatar');
     
     res.status(201).json({
       success: true,

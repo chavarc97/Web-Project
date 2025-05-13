@@ -4,6 +4,7 @@ dotenv.config();
 import colors from "colors";
 import authRouter from "./routes/authRoutes.js"
 import userRouter from "./routes/userRoutes.js";
+import trainingRouter from "./routes/training.rotes.js";
 import connectDB from "./config/connection.js";
 import cors from "cors";
 
@@ -38,6 +39,7 @@ app.listen(PORT,() => {
 // routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/training", trainingRouter);
 
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500
