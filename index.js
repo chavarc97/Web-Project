@@ -15,7 +15,7 @@ connectDB();
 const app = express();
 
 // enable cors
-const allowedOrigins = ["http://localhost:5173", "https://run-app-interface.vercel.app/"];
+const allowedOrigins = ["http://localhost:5173", "https://run-app-interface.vercel.app"];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -24,6 +24,8 @@ app.use(cors({
             callback(new Error("Not allowed by CORS"));
         }
     },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
 }));
 
