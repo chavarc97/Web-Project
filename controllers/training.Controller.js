@@ -335,8 +335,10 @@ export const addToTrainingPlan = asyncHandler(async (req, res, next) => {
  * @route   GET /api/training/plans/:user
  * @access  Private
  */
+
 export const getTrainingPlans = asyncHandler(async (req, res, next) => {
   const { user } = req.params;
+  const { startDate, endDate } = req.query;
   
   try {
     // Check if user exists
@@ -345,19 +347,67 @@ export const getTrainingPlans = asyncHandler(async (req, res, next) => {
       return next(errorHandler(404, "User not found"));
     }
     
-    const trainingPlans = await TrainingPlan.find({ user }).populate(
-      "workouts.workout"
-    );
+    // Build query
+    const query = { user };
+    
+    // Add date range filter if provided
+    if (startDate && endDate) {
+      query.date = { 
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    const trainingPlans = await TrainingPlan.find(query)
+      .populate({
+        path: 'workouts.workout',
+        select: 'workoutName warmUp work coolDown estimatedDuration'
+      })
+      .sort({ date: 1 }); // Sort by date ascending
+    
+    // Calculate weekly summaries
+    const weeklySummaries = {};
+    trainingPlans.forEach(plan => {
+      const weekNumber = getWeekNumber(plan.date);
+      if (!weeklySummaries[weekNumber]) {
+        weeklySummaries[weekNumber] = {
+          plannedDistance: 0,
+          completedDistance: 0,
+          workouts: []
+        };
+      }
+      
+      weeklySummaries[weekNumber].plannedDistance += plan.totalDistance || 0;
+      weeklySummaries[weekNumber].completedDistance += plan.completedDistance || 0;
+      
+      plan.workouts.forEach(workout => {
+        weeklySummaries[weekNumber].workouts.push({
+          day: workout.day,
+          completed: workout.completed,
+          workout: workout.workout
+        });
+      });
+    });
     
     res.status(200).json({
       success: true,
       count: trainingPlans.length,
-      data: trainingPlans
+      data: trainingPlans,
+      weeklySummaries: Object.values(weeklySummaries)
     });
   } catch (error) {
     next(error);
   }
 });
+
+// Helper function to get ISO week number
+function getWeekNumber(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
 
 /**
  * @desc    Get training plan by ID
